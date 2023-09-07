@@ -18,3 +18,9 @@
 4. 会话窗口的 Ctrl + Tab 支持。
 5. 屏蔽了 QQ 下载群文件不停地朗读“更新时间”的问题。
 
+## 版权
+
+此代码源自 NV 宝盒插件： [https://gitee.com/sscn.byethost3.com/nvbox](https://gitee.com/sscn.byethost3.com/nvbox)。
+
+SmileSky 是该插件的原作者，该插件在 GPL 2.0 许可下发布。
+
