@@ -25,7 +25,7 @@ addon_info = {
 	# Translators: Long description to be shown for this add-on on add-on information from add-ons manager
 	"addon_description": _("""Enhance the experience of using PC QQ for NVDA users."""),
 	# version
-	"addon_version": "1.0.0",
+	"addon_version": "1.0.1",
 	# Author(s)
 	"addon_author": "NVDA Chinese Community and other contributors, Original work by SmileSky<mzdk100@foxmail.com>",
 	# URL for the add-on documentation support
