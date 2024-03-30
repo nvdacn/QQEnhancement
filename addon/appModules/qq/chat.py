@@ -8,9 +8,10 @@ import time
 import api, gui, IAccessibleHandler, mouseHandler, tones, ui, winUser, wx
 from controlTypes.role import Role
 
-def clickButton(name, onChoice = lambda x: True):
+def clickButton(name, onChoice = lambda x: True, obj=None):
     # 点击按钮
-    obj = api.getForegroundObject()
+    if obj is None:
+        obj = api.getForegroundObject()
     if not obj:
         # 没有获取到窗口对象就直接返回
         tones.beep(500, 50)
