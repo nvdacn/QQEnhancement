@@ -12,6 +12,7 @@ import api
 from controlTypes.state import State
 from controlTypes.role import Role
 from displayModel import DisplayModelTextInfo
+from logHandler import log
 from NVDAObjects.IAccessible import IA2TextTextInfo
 from NVDAObjects.IAccessible import chromium
 from scriptHandler import script
@@ -78,22 +79,54 @@ class AppModule(appModuleHandler.AppModule):
         )
 
     def event_gainFocus(self, obj, nextHandler):
-        # 处理消息列表内的文件上传窗格聚焦
+        # 处理消息列表内的文件上传/下载窗格聚焦
         if obj.role == Role.PANE and obj.simpleFirstChild is not None and obj.simpleFirstChild.role == Role.GRAPHIC:
             try:
-                fileName = obj.firstChild.firstChild.next.name
-                fileSize = obj.firstChild.firstChild.next.next.name
-                obj.name = f"{fileName} {fileSize}"
-            except: pass
+                info_parts = []
+                max_info_count = 3  # 我们最多只关心前3条静态文本信息
+                # 从窗格的第一个子对象开始顺序扫描
+                current_child = obj.simpleFirstChild
+                # 循环，直到没有更多兄弟节点，或者我们已经找到了所需数量的信息
+                while current_child and len(info_parts) < max_info_count:
+                    # 只关心角色为 STATICTEXT 且有有效名称的对象
+                    if current_child.role == Role.STATICTEXT and current_child.name and current_child.name.strip():
+                        info_parts.append(current_child.name.strip())
+                    current_child = current_child.simpleNext
+                if info_parts:
+                    obj.name = " ".join(info_parts)
+                    obj.value = "" # 清空 value，防止 NVDA 朗读重复或无关内容
+                else:
+                    log.debugWarning("File pane focus (practical scan): No STATICTEXT info found.")
+            except Exception as e:
+                log.debugWarning(f"Error processing file pane focus with practical scan: {e}")
+                pass
+           
         # 处理语音消息窗格聚焦
         if obj.role == Role.PANE and obj.value == "语音控件":
             try:
                 duration = obj.simpleLastChild.name
-                speechToTextResult = obj.simpleFirstChild.name if obj.simpleFirstChild.role == Role.STATICTEXT else ""
-                speechToTextTip = "按 Shift+回车键可转文字" if obj.simpleFirstChild.simpleNext.description == "转为文字显示" else ""
-                obj.name = f"语音消息 {duration}秒 {speechToTextResult} 按空格键或回车键可播放 {speechToTextTip}"
-                obj.value = ""
-            except: pass
+                # 只有在获取到时长时才继续处理，因为时长是核心信息
+                if duration:
+                    # 构建朗读内容的各个部分
+                    parts = [f"语音消息 {duration}秒"]
+                   
+                    speechToTextResult = obj.simpleFirstChild.name if obj.simpleFirstChild.role == Role.STATICTEXT else ""
+                    if speechToTextResult:
+                        parts.append(speechToTextResult)
+                  
+                    parts.append("按空格键或回车键可播放")
+                    speechToTextTip = "按 Shift+回车键可转文字" if obj.simpleFirstChild.simpleNext.description == "转为文字显示" else ""
+                    if speechToTextTip:
+                        parts.append(speechToTextTip)
+                    obj.name = " ".join(parts)
+                    obj.value = ""
+                else:
+                    # 如果时长获取不到，记录日志
+                    log.debugWarning("Voice message focus: Could not retrieve message duration.")
+            except (AttributeError, TypeError):
+                # 如果对象树结构不符，安静地忽略
+                pass
+
         # 修正 QQ 按钮标题播报问题
         if obj.role == Role.BUTTON and not obj.name:
             obj.name = obj.description
