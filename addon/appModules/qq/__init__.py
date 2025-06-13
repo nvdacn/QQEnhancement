@@ -94,20 +94,6 @@ class AppModule(appModuleHandler.AppModule):
                 obj.name = f"语音消息 {duration}秒 {speechToTextResult} 按空格键或回车键可播放 {speechToTextTip}"
                 obj.value = ""
             except: pass
-        # 处理微软输入法上屏后不能朗读消息输入框内容
-        poss=api.getReviewPosition().copy()
-        obj=api.getFocusObject()
-        if poss is not None and isinstance(poss, IA2TextTextInfo):
-            if obj.name is not None and obj.name.startswith(u"\u8f93\u5165"):
-                self.pos=poss
-                self.obj=obj
-        elif isinstance(poss, DisplayModelTextInfo):
-            try:
-                if self.pos and self.pos is not None:
-                    api.setFocusObject(self.obj)
-            except:
-                pass
-
         # 修正 QQ 按钮标题播报问题
         if obj.role == Role.BUTTON and not obj.name:
             obj.name = obj.description
