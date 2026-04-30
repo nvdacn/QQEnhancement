@@ -23,10 +23,12 @@ addon_info = AddonInfo(
 	# Translators: Long description to be shown for this add-on on add-on information from add-on store
 	addon_description=_("""Enhance the experience of using PC QQ for NVDA users."""),
 	# version
-	addon_version="1.2.2",
+	addon_version="1.2.3",
 	# Brief changelog for this version
 	# Translators: what's new content for the add-on version to be shown in the add-on store
-	addon_changelog=_("""Bump version."""),
+	addon_changelog=_("""### 1.2.3
+
+Bump version, compatible with NVDA 2026.1.0."""),
 	# Author(s)
 	addon_author="Cary-rowen, NVDA Chinese Community and other contributors, Original work by SmileSky<mzdk100@foxmail.com>",
 	# URL for the add-on documentation support
@@ -38,7 +40,7 @@ addon_info = AddonInfo(
 	# Minimum NVDA version supported (e.g. "2019.3.0", minor version is optional)
 	addon_minimumNVDAVersion="2021.1.0",
 	# Last NVDA version supported/tested (e.g. "2024.4.0", ideally more recent than minimum version)
-	addon_lastTestedNVDAVersion="2025.1.0",
+	addon_lastTestedNVDAVersion="2026.1.0",
 	# Add-on update channel (default is None, denoting stable releases,
 	# and for development releases, use "dev".)
 	# Do not change unless you know what you are doing!
