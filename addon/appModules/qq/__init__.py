@@ -5,6 +5,7 @@
 # This code is borrowed from the original add-on NVBox: https://gitee.com/sscn.byethost3.com/nvbox
 
 import appModuleHandler
+import addonHandler
 import tones
 import ui
 import winUser
@@ -16,6 +17,48 @@ from NVDAObjects.IAccessible import chromium
 from scriptHandler import script
 
 from . import chat, faces
+
+
+_versionWarningShown = False
+
+
+def _isNewQQFramework(productVersion: str) -> bool:
+	try:
+		major, minor = (int(part) for part in productVersion.split(".", 2)[:2])
+	except (TypeError, ValueError):
+		return False
+	return (major, minor) >= (9, 9)
+
+
+def _showNewQQWarning() -> None:
+	global _versionWarningShown
+	if _versionWarningShown:
+		return
+	_versionWarningShown = True
+
+	import wx
+
+	def showWarning() -> None:
+		try:
+			from gui.message import messageBox
+
+			choice = messageBox(
+				"检测到 QQ 版本为 9.9 或更高。QQ 9.9 起采用新框架，本插件仅适用于 QQ 9.8.x 及更早版本，"
+				"在当前版本中不会提供适配，可能产生意外行为。\n\n"
+				"选择“是”将在 NVDA 重启时卸载插件；选择“否”将在 NVDA 重启时禁用插件；"
+				"选择“取消”则保留插件，但不会在 QQ 9.9 中生效。",
+				"QQEnhancement 兼容性提示",
+				wx.YES | wx.NO | wx.CANCEL | wx.ICON_WARNING | wx.CENTER,
+			)
+			addon = addonHandler.getCodeAddon(AppModule)
+			if choice == wx.YES:
+				addon.requestRemove()
+			elif choice == wx.NO:
+				addon.enable(False)
+		except Exception:
+			log.exception("Unable to show QQ compatibility warning")
+
+	wx.CallAfter(showWarning)
 
 
 # QQ内嵌网页树拦截器类
@@ -50,6 +93,8 @@ class AppModule(appModuleHandler.AppModule):
 		pass
 
 	def chooseNVDAObjectOverlayClasses(self, obj, clsList):
+		if self._usesNewQQFramework:
+			return clsList
 		if obj.windowClassName == "WebAccessbilityHost":
 			# 用于支持QQ内嵌网页的光标浏览
 			clsList.insert(0, chromium.Document)
@@ -60,6 +105,14 @@ class AppModule(appModuleHandler.AppModule):
 
 	def __init__(self, *args, **kwargs):
 		super().__init__(*args, **kwargs)
+		self._usesNewQQFramework = False
+		try:
+			self._usesNewQQFramework = _isNewQQFramework(self.productVersion)
+			if self._usesNewQQFramework:
+				self.clearGestureBindings()
+				_showNewQQWarning()
+		except Exception:
+			log.debugWarning("Unable to inspect QQ product version", exc_info=True)
 
 	def script_speechToText(self, gesture):
 		focusObj = api.getFocusObject()
@@ -94,6 +147,8 @@ class AppModule(appModuleHandler.AppModule):
 		)
 
 	def event_gainFocus(self, obj, nextHandler):
+		if self._usesNewQQFramework:
+			return nextHandler()
 		# 处理消息列表内的文件上传/下载窗格聚焦
 		if (
 			obj.role == Role.PANE
@@ -165,6 +220,8 @@ class AppModule(appModuleHandler.AppModule):
 			pass
 
 	def event_selection(self, obj, nextHandler):
+		if self._usesNewQQFramework:
+			return nextHandler()
 		# 针对 QQ 的 Ctrl+tab 切换聊天窗口做了支持
 		if obj.role == Role.TAB:
 			# tab 选中的事件
@@ -181,11 +238,15 @@ class AppModule(appModuleHandler.AppModule):
 		nextHandler()
 
 	def event_valueChange(self, obj, nextHandler):
+		if self._usesNewQQFramework:
+			return nextHandler()
 		# 表情输入处理
 		faces.onInput(obj)
 		nextHandler()
 
 	def event_nameChange(self, obj, nextHandler):
+		if self._usesNewQQFramework:
+			return nextHandler()
 		# 处理 QQ 的 alert 对话框
 		if Role.PANE == obj.role:
 			self.event_alert(obj, nextHandler)
@@ -193,6 +254,8 @@ class AppModule(appModuleHandler.AppModule):
 		nextHandler()
 
 	def event_alert(self, obj, nextHandler):
+		if self._usesNewQQFramework:
+			return nextHandler()
 		# 获取 obj 的子孙
 		children = obj.recursiveDescendants
 		# 如果没有子孙，就跳过
@@ -206,6 +269,8 @@ class AppModule(appModuleHandler.AppModule):
 			ui.message(child.name)
 
 	def event_foreground(self, obj, nextHandler):
+		if self._usesNewQQFramework:
+			return nextHandler()
 		# 判断当前窗口是不是一个对话框
 		ws = obj.windowStyle
 		if not (ws & winUser.WS_EX_APPWINDOW or ws & winUser.WS_GROUP):
@@ -214,6 +279,8 @@ class AppModule(appModuleHandler.AppModule):
 		nextHandler()
 
 	def event_liveRegionChange(self, obj, nextHandler):
+		if self._usesNewQQFramework:
+			return nextHandler()
 		# 禁止QQ下载群文件一直吵个不停
 		if obj and obj.name.startswith("更新时间："):
 			return
