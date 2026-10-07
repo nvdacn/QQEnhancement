@@ -1,3 +1,4 @@
-### 1.2.3
+### 1.3.0
 
-Bump version, compatible with NVDA 2026.1.0.
+Initial support for QQ NT 9.9.x, refer to the documentation for more info.
+
