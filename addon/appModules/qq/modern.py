@@ -18,107 +18,51 @@ class Adapter:
 
 	def __init__(self):
 		self.currentWindowHandle = None
-		self.activeRootHandle = None
+		self.activeWindowHandle = None
 		self.messageInput = None
 		self.messageList = None
-		self.messageListContext = None
 		self.sessionList = None
 
 	def event_NVDAObject_init(self, obj):
 		self._remember(obj)
 
-	def _remember(self, obj):
+	def _windowHandle(self, obj):
 		try:
-			className = (getattr(obj, "IA2Attributes", None) or {}).get("class", "")
+			return obj.windowHandle
 		except Exception:
-			className = ""
-		if "ExEditor-qq-msg-editor" in className:
+			return None
+
+	def _hasClass(self, obj, className):
+		try:
+			value = (getattr(obj, "IA2Attributes", None) or {}).get("class", "")
+		except Exception:
+			return False
+		return isinstance(value, str) and className in value.split()
+
+	def _remember(self, obj):
+		if self._hasClass(obj, "ExEditor-qq-msg-editor"):
 			self.messageInput = obj
-		elif "chat-msg-area__vlist" in className:
+		elif self._hasClass(obj, "chat-msg-area__vlist"):
 			self.messageList = obj
-			self.messageListContext = self.messageInput
-		elif "recent-contact-list" in className:
-			self.sessionList = obj
-		elif getattr(obj, "name", "") == "消息列表":
-			self.messageList = obj
-			self.messageListContext = None
-		elif getattr(obj, "name", "") == "会话列表":
+		elif self._hasClass(obj, "recent-contact-list"):
 			self.sessionList = obj
 
 	def event_gainFocus(self, obj, nextHandler):
-		rootHandle = getattr(obj, "windowHandle", None)
-		if rootHandle and self.activeRootHandle and rootHandle != self.activeRootHandle:
+		windowHandle = self._windowHandle(obj)
+		if windowHandle and self.activeWindowHandle and windowHandle != self.activeWindowHandle:
 			self.messageInput = None
 			self.messageList = None
-		self.activeRootHandle = rootHandle or self.activeRootHandle
-		className = ""
-		try:
-			className = (getattr(obj, "IA2Attributes", None) or {}).get("class", "")
-		except Exception:
-			pass
-		if "ExEditor-qq-msg-editor" in className and self.messageInput is not obj:
-			self.messageList = None
-			self.messageListContext = None
+		self.activeWindowHandle = windowHandle or self.activeWindowHandle
 		self._remember(obj)
-		if "ExEditor-qq-msg-editor" in className:
-			self.currentWindowHandle = obj.windowHandle
+		if self._hasClass(obj, "ExEditor-qq-msg-editor"):
+			self.currentWindowHandle = windowHandle
 		nextHandler()
 
-	def _findFocusable(self, root):
-		queue = [root]
-		seen = set()
-		fallback = None
-		index = 0
-		while index < len(queue) and len(seen) < 128:
-			obj = queue[index]
-			index += 1
-			for child in self._simpleChildren(obj, 128 - len(seen)):
-				if id(child) in seen:
-					continue
-				seen.add(id(child))
-				try:
-					hasFocus = child.hasFocus
-				except Exception:
-					hasFocus = False
-				if hasFocus:
-					return child
-				try:
-					isFocusable = child.isFocusable
-				except Exception:
-					isFocusable = False
-				if fallback is None and isFocusable:
-					fallback = child
-				queue.append(child)
-		return fallback
-
-	def _simpleChildren(self, root, limit):
-		try:
-			child = root.simpleFirstChild
-		except Exception:
-			return
-		for _ in range(limit):
-			if child is None:
-				return
-			yield child
-			try:
-				child = child.simpleNext
-			except Exception:
-				return
-
 	def _focus(self, obj):
-		if obj is None:
-			return
-		if self.activeRootHandle and getattr(obj, "windowHandle", None) != self.activeRootHandle:
+		if obj is None or (self.activeWindowHandle and self._windowHandle(obj) != self.activeWindowHandle):
 			return
 		try:
-			isFocusable = obj.isFocusable
-		except Exception:
-			isFocusable = False
-		target = obj if isFocusable else self._findFocusable(obj)
-		if target is None:
-			return
-		try:
-			target.setFocus()
+			obj.setFocus()
 		except Exception:
 			pass
 
@@ -127,19 +71,21 @@ class Adapter:
 		for _ in range(6):
 			if current is None:
 				break
-			try:
-				attrs = getattr(current, "IA2Attributes", None) or {}
-			except Exception:
-				attrs = {}
-			if "chat-msg-area__vlist" in attrs.get("class", ""):
+			if self._hasClass(current, "chat-msg-area__vlist"):
 				return current
-			for child in self._simpleChildren(current, 64):
-				try:
-					attrs = getattr(child, "IA2Attributes", None) or {}
-				except Exception:
-					attrs = {}
-				if "chat-msg-area__vlist" in attrs.get("class", ""):
+			try:
+				child = current.simpleFirstChild
+			except Exception:
+				child = None
+			for _ in range(64):
+				if child is None:
+					break
+				if self._hasClass(child, "chat-msg-area__vlist"):
 					return child
+				try:
+					child = child.simpleNext
+				except Exception:
+					break
 			try:
 				current = current.parent
 			except Exception:
@@ -147,15 +93,12 @@ class Adapter:
 		return None
 
 	def script_focusMessageList(self, gesture):
-		if self.messageListContext is not self.messageInput:
+		inputHandle = self._windowHandle(self.messageInput)
+		if self._windowHandle(self.messageList) != inputHandle:
 			self.messageList = None
 		if self.messageList is None and self.messageInput is not None:
-			messageList = self._findMessageList()
-			if messageList is not None:
-				self.messageList = messageList
-				self.messageListContext = self.messageInput
-		className = (getattr(self.messageList, "IA2Attributes", None) or {}).get("class", "")
-		if "chat-msg-area__vlist" in className:
+			self.messageList = self._findMessageList()
+		if self._hasClass(self.messageList, "chat-msg-area__vlist"):
 			self._focus(self.messageList)
 
 	def script_focusMessageInput(self, gesture):

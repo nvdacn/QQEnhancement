@@ -2,7 +2,15 @@
 
 该插件旨在增强 NVDA 用户在使用即时聊天软件 PC QQ 过程中的操作体验。
 
-### QQ 增强
+## PC QQ 9.9.x 系列增强：
+1. 快捷键：
+   - Alt+L：主界面聚焦会话列表。
+   - Alt+M：会话窗口聚焦消息列表。
+   - Alt+S：会话窗口聚焦消息输入框。
+2. 解决隐藏QQ主窗口后残留幽灵焦点的问题。
+   - 如果你手动更改了隐显QQ窗口的快捷键，可在QQ窗口获得焦点时，前往 NVDA 的“按键与手势”对话框，找到“QQEnhancement”为“隐藏 QQ 窗口”添加对应快捷键。
+
+## PC QQ9.7及以下版本增强
 1. 支持 QQ 内嵌网页的导航，操作与 Chrome 一致，支持单件导航，具体涵盖以下场景：
     - 群文件；
     - 精华消息；
@@ -30,6 +38,4 @@
 
 ## 版权
 
-此代码源自 NV 宝盒插件： [https://gitee.com/sscn.byethost3.com/nvbox](https://gitee.com/sscn.byethost3.com/nvbox)。
-
-SmileSky 是该插件的原作者，该插件在 GPL 2.0 许可下发布。
+此插件对传统版本QQ的部分支持代码源自 NV 宝盒插件： [https://gitee.com/sscn.byethost3.com/nvbox](https://gitee.com/sscn.byethost3.com/nvbox)。
